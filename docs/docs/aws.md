@@ -661,6 +661,41 @@ spark-sql --conf spark.sql.catalog.my_catalog=org.apache.iceberg.spark.SparkCata
 
 For more details on using S3 Dual-stack, please refer [Using dual-stack endpoints from the AWS CLI and the AWS SDKs](https://docs.aws.amazon.com/AmazonS3/latest/userguide/dual-stack-endpoints.html#dual-stack-endpoints-cli)
 
+### S3-Compatible Storage
+
+`S3FileIO` can be used with S3-compatible storage services like MinIO, Oracle Cloud Infrastructure (OCI), and others. 
+These services often require specific configurations to work correctly with the AWS SDK.
+
+#### Path-Style Access
+
+Many S3-compatible storage services require path-style URLs instead of virtual-hosted-style URLs. 
+To enable path-style access, set the `s3.path-style-access` catalog property to `true`.
+
+#### Chunked Encoding
+
+Some S3-compatible storage services like Oracle Cloud Infrastructure (OCI) don't support payload signing and require 
+the `x-amz-content-sha256` header to be set to `UNSIGNED-PAYLOAD` instead of a calculated SHA256 checksum.
+To disable chunked encoding (which disables payload signing), set the `s3.chunked-encoding-enabled` catalog property to `false`.
+
+For example, to use `S3FileIO` with OCI S3-compatible storage with Spark 3.5, you can start the Spark SQL shell with:
+
+```
+spark-sql --conf spark.sql.catalog.my_catalog=org.apache.iceberg.spark.SparkCatalog \
+    --conf spark.sql.catalog.my_catalog.warehouse=s3://my-oci-bucket/my/key/prefix \
+    --conf spark.sql.catalog.my_catalog.io-impl=org.apache.iceberg.aws.s3.S3FileIO \
+    --conf spark.sql.catalog.my_catalog.s3.endpoint=https://my-namespace.compat.objectstorage.us-ashburn-1.oraclecloud.com \
+    --conf spark.sql.catalog.my_catalog.s3.path-style-access=true \
+    --conf spark.sql.catalog.my_catalog.s3.chunked-encoding-enabled=false
+```
+
+The following table lists S3FileIO properties for S3-compatible storage:
+
+| Property                      | Default | Description                                                                                          |
+|-------------------------------|---------|------------------------------------------------------------------------------------------------------|
+| s3.endpoint                   | null    | S3 endpoint URL to use for S3-compatible storage services                                            |
+| s3.path-style-access          | false   | Use path-style URLs instead of virtual-hosted-style URLs                                             |
+| s3.chunked-encoding-enabled   | true    | Enable chunked encoding for requests. Disable for storage services that don't support payload signing|
+
 ## AWS Client Customization
 
 Many organizations have customized their way of configuring AWS clients with their own credential provider, access proxy, retry strategy, etc.
