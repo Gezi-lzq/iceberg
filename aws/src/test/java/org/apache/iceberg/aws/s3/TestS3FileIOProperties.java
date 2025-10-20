@@ -75,6 +75,9 @@ public class TestS3FileIOProperties {
     assertThat(s3FileIOProperties.isDualStackEnabled())
         .isEqualTo(S3FileIOProperties.DUALSTACK_ENABLED_DEFAULT);
 
+    assertThat(s3FileIOProperties.isChunkedEncodingEnabled())
+        .isEqualTo(S3FileIOProperties.CHUNKED_ENCODING_ENABLED_DEFAULT);
+
     assertThat(s3FileIOProperties.isCrossRegionAccessEnabled())
         .isEqualTo(S3FileIOProperties.CROSS_REGION_ACCESS_ENABLED_DEFAULT);
 
@@ -495,6 +498,37 @@ public class TestS3FileIOProperties {
     assertThat(s3Configuration.accelerateModeEnabled())
         .as("s3 acceleration mode enabled parameter should be set to true")
         .isFalse();
+    assertThat(s3Configuration.chunkedEncodingEnabled())
+        .as("s3 chunked encoding should be enabled by default")
+        .isTrue();
+  }
+
+  @Test
+  public void testApplyS3ServiceConfigurationsWithChunkedEncodingDisabled() {
+    Map<String, String> properties = Maps.newHashMap();
+    properties.put(S3FileIOProperties.CHUNKED_ENCODING_ENABLED, "false");
+    properties.put(S3FileIOProperties.PATH_STYLE_ACCESS, "true");
+    S3FileIOProperties s3FileIOProperties = new S3FileIOProperties(properties);
+    S3ClientBuilder mockA = Mockito.mock(S3ClientBuilder.class);
+
+    ArgumentCaptor<S3Configuration> s3ConfigurationCaptor =
+        ArgumentCaptor.forClass(S3Configuration.class);
+
+    Mockito.doReturn(mockA).when(mockA).dualstackEnabled(Mockito.anyBoolean());
+    Mockito.doReturn(mockA).when(mockA).crossRegionAccessEnabled(Mockito.anyBoolean());
+    Mockito.doReturn(mockA).when(mockA).serviceConfiguration(Mockito.any(S3Configuration.class));
+
+    s3FileIOProperties.applyServiceConfigurations(mockA);
+
+    Mockito.verify(mockA).serviceConfiguration(s3ConfigurationCaptor.capture());
+
+    S3Configuration s3Configuration = s3ConfigurationCaptor.getValue();
+    assertThat(s3Configuration.chunkedEncodingEnabled())
+        .as("s3 chunked encoding should be disabled when explicitly set to false")
+        .isFalse();
+    assertThat(s3Configuration.pathStyleAccessEnabled())
+        .as("s3 path style access should work with chunked encoding disabled")
+        .isTrue();
   }
 
   @Test

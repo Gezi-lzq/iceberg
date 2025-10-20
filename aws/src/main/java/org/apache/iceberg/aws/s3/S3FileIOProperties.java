@@ -424,6 +424,20 @@ public class S3FileIOProperties implements Serializable {
   public static final boolean DUALSTACK_ENABLED_DEFAULT = false;
 
   /**
+   * Determines if S3 client will use chunked encoding for requests, default to true.
+   *
+   * <p>When chunked encoding is disabled, the client will use UNSIGNED-PAYLOAD instead of
+   * calculating SHA256 checksums for request payloads. This is required for some S3-compatible
+   * storage systems like Oracle Cloud Infrastructure (OCI) that don't support payload signing.
+   *
+   * <p>For more details, see
+   * https://docs.aws.amazon.com/AmazonS3/latest/API/sig-v4-header-based-auth.html
+   */
+  public static final String CHUNKED_ENCODING_ENABLED = "s3.chunked-encoding-enabled";
+
+  public static final boolean CHUNKED_ENCODING_ENABLED_DEFAULT = true;
+
+  /**
    * Determines if S3 client will allow Cross-Region bucket access, default to false.
    *
    * <p>For more details, see
@@ -518,6 +532,7 @@ public class S3FileIOProperties implements Serializable {
   private final Map<String, String> bucketToAccessPointMapping;
   private boolean isPreloadClientEnabled;
   private final boolean isDualStackEnabled;
+  private final boolean isChunkedEncodingEnabled;
   private final boolean isCrossRegionAccessEnabled;
   private final boolean isPathStyleAccess;
   private final boolean isUseArnRegionEnabled;
@@ -560,6 +575,7 @@ public class S3FileIOProperties implements Serializable {
     this.bucketToAccessPointMapping = Collections.emptyMap();
     this.isPreloadClientEnabled = PRELOAD_CLIENT_ENABLED_DEFAULT;
     this.isDualStackEnabled = DUALSTACK_ENABLED_DEFAULT;
+    this.isChunkedEncodingEnabled = CHUNKED_ENCODING_ENABLED_DEFAULT;
     this.isCrossRegionAccessEnabled = CROSS_REGION_ACCESS_ENABLED_DEFAULT;
     this.isPathStyleAccess = PATH_STYLE_ACCESS_DEFAULT;
     this.isUseArnRegionEnabled = USE_ARN_REGION_ENABLED_DEFAULT;
@@ -611,6 +627,9 @@ public class S3FileIOProperties implements Serializable {
             properties, ACCELERATION_ENABLED, ACCELERATION_ENABLED_DEFAULT);
     this.isDualStackEnabled =
         PropertyUtil.propertyAsBoolean(properties, DUALSTACK_ENABLED, DUALSTACK_ENABLED_DEFAULT);
+    this.isChunkedEncodingEnabled =
+        PropertyUtil.propertyAsBoolean(
+            properties, CHUNKED_ENCODING_ENABLED, CHUNKED_ENCODING_ENABLED_DEFAULT);
     this.isCrossRegionAccessEnabled =
         PropertyUtil.propertyAsBoolean(
             properties, CROSS_REGION_ACCESS_ENABLED, CROSS_REGION_ACCESS_ENABLED_DEFAULT);
@@ -786,6 +805,10 @@ public class S3FileIOProperties implements Serializable {
 
   public boolean isDualStackEnabled() {
     return this.isDualStackEnabled;
+  }
+
+  public boolean isChunkedEncodingEnabled() {
+    return this.isChunkedEncodingEnabled;
   }
 
   public boolean isCrossRegionAccessEnabled() {
@@ -977,7 +1000,8 @@ public class S3FileIOProperties implements Serializable {
 
   /**
    * Configure services settings for an S3 client. The settings include: s3DualStack,
-   * crossRegionAccessEnabled, s3UseArnRegion, s3PathStyleAccess, and s3Acceleration
+   * crossRegionAccessEnabled, s3UseArnRegion, s3PathStyleAccess, s3Acceleration, and
+   * chunkedEncodingEnabled
    *
    * <p>Sample usage:
    *
@@ -994,6 +1018,7 @@ public class S3FileIOProperties implements Serializable {
                 .pathStyleAccessEnabled(isPathStyleAccess)
                 .useArnRegionEnabled(isUseArnRegionEnabled)
                 .accelerateModeEnabled(isAccelerationEnabled)
+                .chunkedEncodingEnabled(isChunkedEncodingEnabled)
                 .build());
   }
 
